@@ -1,0 +1,289 @@
+@import "tailwindcss";
+
+/* =========================================================
+   GLISH — WARM LINEN & DESERT SAND DESIGN SYSTEM (SPEAK.COM AESTHETIC)
+   Palette:
+     Canvas: #FBF9F5 (Warm Porcelain / Luminous Alabaster)
+     Surfaces: #FFFFFF (Crisp White), #F4EFEA (Desert Sand), #EAE4DC (Muted Linen)
+     Borders: #EAE5DE, #DFD8CE
+     Text: #1C1A17 (Deep Espresso Charcoal), #6B645C (Warm Taupe Slate), #968E85 (Subtle)
+     Accents: 
+       Terracotta Coral (#E06D53, #D95D39)
+       Honey Amber (#D97706)
+       Sage Olive (#4A7C59)
+       Muted Rose (#E11D48)
+   ========================================================= */
+
+@layer base {
+  *, *::before, *::after {
+    box-sizing: border-box;
+    margin: 0;
+    padding: 0;
+  }
+
+  html {
+    background-color: #FBF9F5;
+    color: #1C1A17;
+    font-family: 'Inter', system-ui, -apple-system, BlinkMacSystemFont, sans-serif;
+    scroll-behavior: smooth;
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+    text-rendering: optimizeLegibility;
+  }
+
+  body {
+    background-color: #FBF9F5;
+    color: #1C1A17;
+    min-height: 100vh;
+    margin: 0;
+    padding: 0;
+    overflow-x: hidden;
+    background-image:
+      radial-gradient(ellipse 900px 500px at 50% -5%, rgba(224, 109, 83, 0.06), transparent 70%),
+      radial-gradient(ellipse 800px 400px at 90% 70%, rgba(217, 119, 6, 0.04), transparent 70%),
+      radial-gradient(circle 600px at 10% 90%, rgba(74, 124, 89, 0.03), transparent 60%);
+    background-attachment: fixed;
+  }
+
+  h1, h2, h3, h4, h5, h6 {
+    font-family: 'Space Grotesk', system-ui, sans-serif;
+    color: #1C1A17;
+    letter-spacing: -0.025em;
+    line-height: 1.25;
+  }
+
+  p {
+    line-height: 1.6;
+    color: #1C1A17;
+  }
+
+  code, pre, .font-mono {
+    font-family: 'JetBrains Mono', ui-monospace, SFMono-Regular, monospace;
+    font-feature-settings: 'tnum' on, 'zero' on;
+  }
+}
+
+/* =========================================================
+   CONTAINER & LAYOUT UTILITIES
+   ========================================================= */
+
+.app-container {
+  width: 100%;
+  max-width: 1200px;
+  margin-left: auto;
+  margin-right: auto;
+  padding-left: 16px;
+  padding-right: 16px;
+}
+
+@media (min-width: 640px) {
+  .app-container {
+    padding-left: 24px;
+    padding-right: 24px;
+  }
+}
+
+@media (min-width: 1024px) {
+  .app-container {
+    padding-left: 32px;
+    padding-right: 32px;
+  }
+}
+
+/* =========================================================
+   WARM CARDS & SURFACES
+   ========================================================= */
+
+.warm-card {
+  position: relative;
+  background: #FFFFFF;
+  border: 1px solid #EAE5DE;
+  border-radius: 24px;
+  box-shadow: 
+    0 4px 20px -2px rgba(28, 26, 23, 0.04),
+    0 2px 6px -1px rgba(28, 26, 23, 0.02);
+  transition: border-color 0.2s cubic-bezier(0.16, 1, 0.3, 1),
+              box-shadow 0.2s cubic-bezier(0.16, 1, 0.3, 1),
+              transform 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.warm-card:hover {
+  border-color: rgba(224, 109, 83, 0.35);
+  box-shadow: 
+    0 12px 32px -4px rgba(28, 26, 23, 0.07),
+    0 4px 12px -2px rgba(224, 109, 83, 0.06);
+}
+
+.sand-card {
+  background: #F4EFEA;
+  border: 1px solid #EAE5DE;
+  border-radius: 20px;
+}
+
+/* Legacy utility alias map to ensure 0 breakage */
+.luxury-card {
+  position: relative;
+  background: #FFFFFF;
+  border: 1px solid #EAE5DE;
+  border-radius: 24px;
+  box-shadow: 
+    0 4px 20px -2px rgba(28, 26, 23, 0.04),
+    0 2px 6px -1px rgba(28, 26, 23, 0.02);
+  transition: all 0.2s ease;
+}
+
+.luxury-card:hover {
+  border-color: rgba(224, 109, 83, 0.35);
+  box-shadow: 
+    0 12px 32px -4px rgba(28, 26, 23, 0.07),
+    0 4px 12px -2px rgba(224, 109, 83, 0.06);
+}
+
+/* =========================================================
+   WARM BUTTONS & TACTILE CONTROLS
+   ========================================================= */
+
+.btn-terracotta {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  background: linear-gradient(135deg, #E06D53 0%, #D95D39 100%);
+  color: #FFFFFF;
+  font-weight: 600;
+  font-size: 13px;
+  padding: 10px 22px;
+  border-radius: 9999px;
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  cursor: pointer;
+  box-shadow: 
+    0 3px 12px rgba(224, 109, 83, 0.3),
+    inset 0 1px 0 rgba(255, 255, 255, 0.25);
+  transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+  text-decoration: none;
+  white-space: nowrap;
+}
+
+.btn-terracotta:hover {
+  background: linear-gradient(135deg, #EB7D65 0%, #E06D53 100%);
+  box-shadow: 
+    0 6px 20px rgba(224, 109, 83, 0.4),
+    inset 0 1px 0 rgba(255, 255, 255, 0.35);
+  transform: translateY(-1px) scale(1.015);
+}
+
+.btn-terracotta:active {
+  transform: translateY(0.5px) scale(0.985);
+}
+
+.btn-sand {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  background: #F4EFEA;
+  color: #1C1A17;
+  font-weight: 500;
+  font-size: 13px;
+  padding: 10px 20px;
+  border-radius: 9999px;
+  border: 1px solid #EAE5DE;
+  cursor: pointer;
+  box-shadow: 0 2px 6px rgba(28, 26, 23, 0.03);
+  transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+  text-decoration: none;
+  white-space: nowrap;
+}
+
+.btn-sand:hover {
+  background: #EDE6DE;
+  border-color: #DFD8CE;
+  color: #1C1A17;
+  transform: translateY(-1px);
+}
+
+.btn-sand:active {
+  transform: translateY(0.5px) scale(0.985);
+}
+
+.btn-glow {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  background: linear-gradient(135deg, #E06D53 0%, #D95D39 100%);
+  color: #FFFFFF;
+  font-weight: 600;
+  font-size: 13px;
+  padding: 10px 22px;
+  border-radius: 9999px;
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  cursor: pointer;
+  box-shadow: 0 3px 14px rgba(224, 109, 83, 0.3);
+  transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+  text-decoration: none;
+  white-space: nowrap;
+}
+
+.btn-glow:hover {
+  background: linear-gradient(135deg, #EB7D65 0%, #E06D53 100%);
+  box-shadow: 0 6px 20px rgba(224, 109, 83, 0.42);
+  transform: translateY(-1px) scale(1.015);
+}
+
+.btn-glass {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  background: #FFFFFF;
+  color: #1C1A17;
+  font-weight: 500;
+  font-size: 13px;
+  padding: 10px 20px;
+  border-radius: 9999px;
+  border: 1px solid #EAE5DE;
+  cursor: pointer;
+  box-shadow: 0 2px 8px rgba(28, 26, 23, 0.04);
+  transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+  text-decoration: none;
+  white-space: nowrap;
+}
+
+.btn-glass:hover {
+  background: #FBF9F5;
+  border-color: rgba(224, 109, 83, 0.3);
+  transform: translateY(-1px);
+}
+
+/* =========================================================
+   EQUALIZER FREQUENCY WAVES (WARM TERRACOTTA)
+   ========================================================= */
+
+@keyframes waveBounce1 { 0%, 100% { height: 6px; } 50% { height: 22px; } }
+@keyframes waveBounce2 { 0%, 100% { height: 10px; } 50% { height: 32px; } }
+@keyframes waveBounce3 { 0%, 100% { height: 4px; } 50% { height: 26px; } }
+@keyframes waveBounce4 { 0%, 100% { height: 8px; } 50% { height: 28px; } }
+@keyframes waveBounce5 { 0%, 100% { height: 5px; } 50% { height: 18px; } }
+
+.wave-bar-1 { animation: waveBounce1 0.75s ease-in-out infinite; }
+.wave-bar-2 { animation: waveBounce2 0.85s ease-in-out infinite 0.1s; }
+.wave-bar-3 { animation: waveBounce3 0.65s ease-in-out infinite 0.2s; }
+.wave-bar-4 { animation: waveBounce4 0.9s ease-in-out infinite 0.15s; }
+.wave-bar-5 { animation: waveBounce5 0.7s ease-in-out infinite 0.05s; }
+
+/* Custom Warm Scrollbar */
+::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+::-webkit-scrollbar-track {
+  background: transparent;
+}
+::-webkit-scrollbar-thumb {
+  background: #DFD8CE;
+  border-radius: 9999px;
+}
+::-webkit-scrollbar-thumb:hover {
+  background: #C4B9AA;
+}
