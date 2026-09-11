@@ -11,6 +11,7 @@ import useAudioEngine from '@/hooks/useAudioEngine'
 import useSpeechRecognition from '@/hooks/useSpeechRecognition'
 import { formatDuration, formatWPM, getCefrLevel } from '@/lib/utils'
 import { Sparkles, PanelRightOpen, PanelRightClose, BookOpen } from 'lucide-react'
+import { useAuth } from '@/contexts/AuthContext'
 
 function mapScenarioToKey(name = '') {
   const lower = (name || '').toLowerCase()
@@ -23,8 +24,45 @@ function mapScenarioToKey(name = '') {
   return 'free'
 }
 
+function normalizeForEchoCheck(str) {
+  return (str || '')
+    .toLowerCase()
+    .replace(/[^\w\s]/g, '')
+    .replace(/\s+/g, ' ')
+    .trim()
+}
+
+function isSpeakerEcho(userText, recentAiTexts = []) {
+  const normUser = normalizeForEchoCheck(userText)
+  if (!normUser || normUser.length < 6) return false
+
+  for (const aiText of recentAiTexts) {
+    const normAi = normalizeForEchoCheck(aiText)
+    if (!normAi) continue
+
+    // Direct containment of substantive phrase (>= 10 chars)
+    if (normUser.length >= 10 && (normAi.includes(normUser) || normUser.includes(normAi))) {
+      return true
+    }
+
+    // High word match on phrases (>= 3 words)
+    const userWords = normUser.split(' ')
+    if (userWords.length >= 3) {
+      let matchCount = 0
+      for (const w of userWords) {
+        if (w.length > 2 && normAi.includes(w)) matchCount++
+      }
+      if ((matchCount / userWords.length) >= 0.7) {
+        return true
+      }
+    }
+  }
+  return false
+}
+
 export default function PracticePage() {
   const location = useLocation()
+  const { user, token, authFetch } = useAuth()
   const [selectedScenario, setSelectedScenario] = useState('systemdesign')
   const [isSessionActive, setIsSessionActive] = useState(false)
   const [sessionStartTime, setSessionStartTime] = useState(0)
@@ -33,9 +71,10 @@ export default function PracticePage() {
   const [sessionReportStats, setSessionReportStats] = useState(null)
   const [showSideFeedback, setShowSideFeedback] = useState(false)
   const [resumedSession, setResumedSession] = useState(null)
-  
-  const wordsCountRef = useRef(0)
   const [totalWords, setTotalWords] = useState(0)
+  const [headphonesMode, setHeadphonesMode] = useState(false)
+  const wordsCountRef = useRef(0)
+  const recentAiTextsRef = useRef([])
 
   // 1. Live Session Timer
   useEffect(() => {
@@ -50,14 +89,18 @@ export default function PracticePage() {
 
   // 2. WebSocket Hook
   const {
+    isConnected,
+    isFallbackMode,
+    engineName,
+    connectionStatus,
+    messages,
+    feedbackCards,
     connect,
     disconnect,
     sendMessage,
+    clearMessages,
     restoreHistory,
     sendHistoryToServer,
-    messages,
-    feedbackCards,
-    clearMessages,
   } = useWebSocket()
 
   // 3. Audio Engine Hook
@@ -85,9 +128,15 @@ export default function PracticePage() {
     setCurrentAiText('')
   }, [clearTtsQueue])
 
-  // 4. Speech Recognition (with real-time voice barge-in)
-  const handleFinalTranscript = useCallback((text) => {
+  // 4. Message Dispatcher (Handles both speech transcripts and direct text input)
+  const handleSendMessage = useCallback((text) => {
     if (!text || !text.trim()) return
+
+    // 🛡️ EchoGuard: Drop only if it's an exact long loopback echo of AI sentence
+    if (isSpeakerEcho(text, recentAiTextsRef.current)) {
+      console.warn('[EchoGuard] 🛡️ Blocked speaker loopback of AI response:', text)
+      return
+    }
 
     const words = text.trim().split(/\s+/).length
     wordsCountRef.current += words
@@ -97,10 +146,11 @@ export default function PracticePage() {
   }, [sendMessage])
 
   const speechRec = useSpeechRecognition({
-    onFinalTranscript: handleFinalTranscript,
+    onFinalTranscript: handleSendMessage,
     isAiSpeaking,
     onInterrupt: handleInterrupt,
     currentAiText,
+    headphonesMode,
   })
 
   // Global Spacebar shortcut to interrupt AI speech
@@ -117,16 +167,21 @@ export default function PracticePage() {
     return () => window.removeEventListener('keydown', handleKeyDown)
   }, [isSessionActive, isAiSpeaking, handleInterrupt])
 
-  // 5. Automatically speak incoming AI messages
+  // 5. Automatically speak incoming AI messages and track for EchoGuard
   const lastSpokenMsgIdRef = useRef(null)
   useEffect(() => {
     if (!isSessionActive || messages.length === 0) return
     const lastMsg = messages[messages.length - 1]
     const msgKey = lastMsg.id || `${lastMsg.timestamp}-${lastMsg.text}`
-    if (lastMsg.role === 'tutor' && lastMsg.text && lastSpokenMsgIdRef.current !== msgKey) {
-      lastSpokenMsgIdRef.current = msgKey
-      setCurrentAiText(lastMsg.text)
-      enqueueTts(lastMsg.text)
+    if (lastMsg.role === 'tutor' && lastMsg.text) {
+      // Record in recent AI responses for EchoGuard loopback prevention
+      recentAiTextsRef.current = [lastMsg.text, ...recentAiTextsRef.current.slice(0, 5)]
+
+      if (lastSpokenMsgIdRef.current !== msgKey) {
+        lastSpokenMsgIdRef.current = msgKey
+        setCurrentAiText(lastMsg.text)
+        enqueueTts(lastMsg.text)
+      }
     }
   }, [messages, isSessionActive, enqueueTts])
 
@@ -164,7 +219,7 @@ export default function PracticePage() {
       return
     }
 
-    connect(selectedScenario, 'Aoede')
+    connect(selectedScenario, 'Aoede', token, user?.id)
     if (resumedSession && messages.length > 0) {
       setTimeout(() => {
         sendHistoryToServer(messages)
@@ -213,9 +268,8 @@ export default function PracticePage() {
       transcript: messages.map(m => ({ role: m.role, text: m.text })),
     }
 
-    fetch('/api/sessions', {
+    authFetch('/api/sessions', {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify(finalSession)
     }).catch(e => console.warn('[Session] Save error:', e))
 
@@ -232,9 +286,8 @@ export default function PracticePage() {
 
   const handleSaveVocab = async (vocabItem) => {
     try {
-      await fetch('/api/vocab', {
+      await authFetch('/api/vocab', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(vocabItem),
       })
     } catch (e) {
@@ -305,6 +358,9 @@ export default function PracticePage() {
             onReplay={handleListenText}
             feedbackCards={feedbackCards}
             onSaveFeedback={handleSaveVocab}
+            isSessionActive={isSessionActive}
+            onSendMessage={handleSendMessage}
+            onSendDraft={speechRec.flushBuffer}
           />
         </div>
 
@@ -353,11 +409,17 @@ export default function PracticePage() {
         sessionDuration={formattedTimer}
         isCalibrating={isCalibrating}
         calibrated={calibrated}
+        isListening={speechRec.isListening}
+        draftText={speechRec.interimText}
+        headphonesMode={headphonesMode}
         onStart={handleStart}
         onEnd={handleEnd}
         onToggleMute={toggleMute}
+        onToggleHeadphones={() => setHeadphonesMode(prev => !prev)}
         onCalibrate={calibrateRoom}
         onInterrupt={handleInterrupt}
+        onRestartListening={speechRec.restartListening}
+        onSendDraft={speechRec.flushBuffer}
       />
 
       {/* Post-Session CEFR Scorecard Modal */}

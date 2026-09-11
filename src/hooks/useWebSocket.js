@@ -10,12 +10,14 @@ export default function useWebSocket() {
   const wsRef = useRef(null)
   const sessionActiveRef = useRef(false)
 
-  const connect = useCallback((scenario = 'free', voice = 'Aoede') => {
+  const connect = useCallback((scenario = 'free', voice = 'Aoede', token = null, userId = null) => {
     if (wsRef.current && wsRef.current.readyState === WebSocket.OPEN) return
 
     setConnectionStatus('connecting')
     const protocol = window.location.protocol === 'https:' ? 'wss' : 'ws'
-    const wsUrl = `${protocol}://${window.location.host}/ws?scenario=${scenario}&voice=${voice}`
+    let wsUrl = `${protocol}://${window.location.host}/ws?scenario=${scenario}&voice=${voice}`
+    if (token) wsUrl += `&token=${encodeURIComponent(token)}`
+    if (userId) wsUrl += `&userId=${encodeURIComponent(userId)}`
 
     const ws = new WebSocket(wsUrl)
     wsRef.current = ws

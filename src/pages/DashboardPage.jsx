@@ -61,14 +61,13 @@ const PRACTICE_TRACKS = [
   },
 ]
 
+import { useAuth } from '@/contexts/AuthContext'
+
 const containerVariants = {
   hidden: { opacity: 0 },
   visible: {
     opacity: 1,
-    transition: {
-      staggerChildren: 0.05,
-      delayChildren: 0.05,
-    },
+    transition: { staggerChildren: 0.08 },
   },
 }
 
@@ -82,16 +81,17 @@ const itemVariants = {
 }
 
 export default function DashboardPage() {
+  const { user, authFetch } = useAuth()
   const [dbStats, setDbStats] = useState(null)
   const [dbCorrections, setDbCorrections] = useState([])
 
   useEffect(() => {
-    fetch('/api/stats')
+    authFetch('/api/stats')
       .then(res => res.json())
       .then(data => setDbStats(data))
       .catch(() => {})
 
-    fetch('/api/vocab')
+    authFetch('/api/vocab')
       .then(res => res.json())
       .then(data => {
         if (Array.isArray(data) && data.length > 0) {
@@ -104,40 +104,42 @@ export default function DashboardPage() {
               : item.type === 'vocab' ? 'text-[#E06D53] bg-[#E06D53]/10 border-[#E06D53]/20'
               : 'text-[#D97706] bg-amber-50 border-amber-200',
           })))
+        } else {
+          setDbCorrections([])
         }
       })
       .catch(() => {})
-  }, [])
+  }, [user?.id, authFetch])
 
   const stats = [
     {
       label: 'Daily Streak',
-      value: `${dbStats?.streakDays || 3} Days`,
-      sub: 'Top 10% active learners',
+      value: `${dbStats?.streakDays || 0} Days`,
+      sub: user ? 'Active speaking streak' : 'Sign in to track streak',
       icon: Flame,
       color: 'text-[#D97706]',
       bg: 'bg-amber-50'
     },
     {
       label: 'CEFR Fluency',
-      value: 'B2 Level',
-      sub: 'Upper-Intermediate',
+      value: dbStats?.totalSessions > 0 ? (dbStats.totalWords > 1000 ? 'C1 Level' : 'B2 Level') : (user ? 'Calibrating' : 'Guest'),
+      sub: user?.role || 'Fluency Assessment',
       icon: Award,
       color: 'text-[#E06D53]',
       bg: 'bg-[#E06D53]/10'
     },
     {
       label: 'Words Spoken',
-      value: dbStats?.totalWords ? dbStats.totalWords.toLocaleString() : '1,420',
-      sub: `${dbStats?.totalSessions || 2} sessions completed`,
+      value: dbStats?.totalWords ? dbStats.totalWords.toLocaleString() : '0',
+      sub: `${dbStats?.totalSessions || 0} sessions completed`,
       icon: MessageCircle,
       color: 'text-indigo-600',
       bg: 'bg-indigo-50'
     },
     {
       label: 'Grammar Accuracy',
-      value: `${dbStats?.avgAccuracy || 94}%`,
-      sub: 'Consistent performance',
+      value: `${dbStats?.avgAccuracy || 90}%`,
+      sub: 'Speech benchmark',
       icon: CheckCircle,
       color: 'text-[#4A7C59]',
       bg: 'bg-emerald-50'
@@ -182,9 +184,16 @@ export default function DashboardPage() {
       >
         <div className="relative z-10 flex flex-col lg:flex-row lg:items-center justify-between gap-8">
           <div className="max-w-2xl space-y-4">
-            <div className="inline-flex items-center gap-2 px-3.5 py-1 rounded-full bg-[#F4EFEA] border border-[#EAE5DE] text-xs font-semibold text-[#E06D53]">
-              <Sparkles size={13} className="fill-[#E06D53]" />
-              <span>Real-Time Voice Studio</span>
+            <div className="flex items-center gap-2 flex-wrap">
+              <div className="inline-flex items-center gap-2 px-3.5 py-1 rounded-full bg-[#F4EFEA] border border-[#EAE5DE] text-xs font-semibold text-[#E06D53]">
+                <Sparkles size={13} className="fill-[#E06D53]" />
+                <span>Real-Time Voice Studio</span>
+              </div>
+              {user && (
+                <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-[#B0CDE6]/25 border border-[#B0CDE6]/40 text-xs font-semibold text-[#1C1A17]">
+                  <span>Welcome back, {user.name}</span>
+                </div>
+              )}
             </div>
 
             <h1 className="text-3xl sm:text-4xl lg:text-5xl font-extrabold tracking-tight text-[#1C1A17] leading-tight">

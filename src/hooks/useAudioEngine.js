@@ -82,19 +82,31 @@ export default function useAudioEngine({ onUserSpeechStart, onUserSpeechEnd, onV
       utterance.voice = preferredVoice
     }
 
+    // Safety Watchdog: If Chrome freezes and never fires onend, automatically release speaking state
+    const maxUtteranceMs = Math.max(3000, textToSpeak.split(/\s+/).length * 550 + 2000)
+    const watchdogTimer = setTimeout(() => {
+      if (isTtsPlayingRef.current) {
+        console.warn('[AudioEngine] ⏰ SpeechSynthesis watchdog: auto-releasing speech lock')
+        activeUtteranceRef.current = null
+        isTtsPlayingRef.current = false
+        setAiSpeakingState(false)
+      }
+    }, maxUtteranceMs)
+
     utterance.onend = () => {
+      clearTimeout(watchdogTimer)
       activeUtteranceRef.current = null
       isTtsPlayingRef.current = false
       if (ttsQueueRef.current.length > 0) {
-        setTimeout(playNextTts, 80)
+        setTimeout(playNextTts, 60)
       } else {
         setAiSpeakingState(false)
       }
     }
 
     utterance.onerror = (e) => {
+      clearTimeout(watchdogTimer)
       activeUtteranceRef.current = null
-      // Only log if not intentional cancellation
       if (e.error !== 'interrupted' && e.error !== 'canceled') {
         console.warn('[TTS] Utterance error:', e)
       }
@@ -120,8 +132,14 @@ export default function useAudioEngine({ onUserSpeechStart, onUserSpeechEnd, onV
     ttsQueueRef.current = []
     isTtsPlayingRef.current = false
     activeUtteranceRef.current = null
-    if (window.speechSynthesis) {
-      window.speechSynthesis.cancel()
+    if (typeof window !== 'undefined' && window.speechSynthesis) {
+      try {
+        window.speechSynthesis.cancel()
+        // Chrome bug workaround: cancel() leaves speech engine paused
+        if (window.speechSynthesis.paused) {
+          window.speechSynthesis.resume()
+        }
+      } catch (e) {}
     }
     setAiSpeakingState(false)
   }, [])

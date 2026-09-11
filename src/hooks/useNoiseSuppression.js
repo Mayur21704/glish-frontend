@@ -22,11 +22,15 @@ export default function useNoiseSuppression() {
   const getMicStream = useCallback(async () => {
     const stream = await navigator.mediaDevices.getUserMedia({
       audio: {
-        noiseSuppression: true,
         echoCancellation: true,
+        noiseSuppression: true,
         autoGainControl: true,
         channelCount: 1,
-        sampleRate: { ideal: 16000 },
+        // Chromium Hardware & OS-level WebRTC AEC3 DSP Flags
+        googEchoCancellation: true,
+        googAutoGainControl: true,
+        googNoiseSuppression: true,
+        googHighpassFilter: true,
       }
     })
     return stream

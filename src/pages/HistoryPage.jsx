@@ -1,53 +1,31 @@
 import { useState, useEffect } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { motion, AnimatePresence } from 'framer-motion'
-import { ChevronDown, ChevronUp, History, Sparkles, Play } from 'lucide-react'
+import { ChevronDown, ChevronUp, History, Sparkles, Play, User } from 'lucide-react'
+import { useAuth } from '@/contexts/AuthContext'
 
 export default function HistoryPage() {
   const navigate = useNavigate()
+  const { user, authFetch } = useAuth()
   const [sessions, setSessions] = useState([])
   const [expandedId, setExpandedId] = useState(null)
+  const [isLoading, setIsLoading] = useState(true)
 
   useEffect(() => {
-    fetch('/api/sessions')
+    setIsLoading(true)
+    authFetch('/api/sessions')
       .then(res => res.json())
       .then(data => {
-        if (Array.isArray(data) && data.length > 0) {
+        if (Array.isArray(data)) {
           setSessions(data)
         } else {
-          setSessions([
-            {
-              id: 1,
-              scenario: 'Full-Stack & DevOps Discussion',
-              started_at: 'Today, 2:30 PM',
-              duration_seconds: 492,
-              words_spoken: 412,
-              cefr_level: 'B2',
-              accuracy_percent: 92,
-              transcript: [
-                { role: 'tutor', text: "Hello! Let's talk about building cloud-native apps with Kubernetes and Docker." },
-                { role: 'user', text: "I have setup docker containers for my node js microservices." },
-                { role: 'tutor', text: "That's great! How do you handle container orchestration and service discovery?" }
-              ]
-            },
-            {
-              id: 2,
-              scenario: 'Tech Job Interview (Lead Engineer)',
-              started_at: 'Yesterday, 5:15 PM',
-              duration_seconds: 765,
-              words_spoken: 680,
-              cefr_level: 'B2',
-              accuracy_percent: 96,
-              transcript: [
-                { role: 'tutor', text: "Tell me about a time you resolved a critical production incident." },
-                { role: 'user', text: "Last month our database was having high cpu usage due to unindexed queries." }
-              ]
-            }
-          ])
+          setSessions([])
         }
       })
-      .catch(() => {})
-  }, [])
+      .catch(() => setSessions([]))
+      .finally(() => setIsLoading(false))
+  }, [user?.id, authFetch])
+
 
   const toggleExpand = (id) => {
     setExpandedId(expandedId === id ? null : id)
@@ -64,9 +42,17 @@ export default function HistoryPage() {
   return (
     <div className="max-w-4xl mx-auto space-y-7 pb-12 w-full">
       <div className="space-y-2">
-        <div className="inline-flex items-center gap-2 px-3.5 py-1 rounded-full bg-[#F4EFEA] border border-[#EAE5DE] text-xs font-semibold text-[#E06D53]">
-          <History size={13} />
-          <span>Speech Archives</span>
+        <div className="flex items-center gap-2 flex-wrap">
+          <div className="inline-flex items-center gap-2 px-3.5 py-1 rounded-full bg-[#F4EFEA] border border-[#EAE5DE] text-xs font-semibold text-[#E06D53]">
+            <History size={13} />
+            <span>Speech Archives</span>
+          </div>
+          {user && (
+            <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-[#B0CDE6]/25 border border-[#B0CDE6]/40 text-xs font-semibold text-[#1C1A17]">
+              <User size={12} className="text-[#1C1A17]" />
+              <span>Learner: {user.name}</span>
+            </div>
+          )}
         </div>
         <h1 className="text-3xl sm:text-4xl font-extrabold text-[#1C1A17] tracking-tight">
           Session History & Transcripts
@@ -76,7 +62,31 @@ export default function HistoryPage() {
         </p>
       </div>
 
+      {sessions.length === 0 && !isLoading && (
+        <div className="p-12 rounded-3xl border border-[#EAE5DE] bg-white text-center space-y-3 shadow-xs">
+          <div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-[#F4EFEA] mx-auto text-[#E06D53]">
+            <History size={22} />
+          </div>
+          <h3 className="font-heading font-bold text-base text-[#1C1A17]">
+            No speech sessions recorded yet
+          </h3>
+          <p className="text-xs text-[#6B645C] max-w-sm mx-auto">
+            Welcome, {user?.name}! Your speech sessions and transcripts will appear here as you practice in the Voice Studio.
+          </p>
+          <div className="pt-2">
+            <button
+              onClick={() => navigate('/practice')}
+              className="btn-terracotta inline-flex items-center gap-2 text-xs font-semibold px-4 py-2"
+            >
+              <Play size={13} className="fill-white" />
+              <span>Start Speaking in Studio</span>
+            </button>
+          </div>
+        </div>
+      )}
+
       <div className="space-y-3.5">
+
         {sessions.map((s) => {
           const isExpanded = expandedId === s.id
           return (

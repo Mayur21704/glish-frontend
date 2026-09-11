@@ -1,32 +1,33 @@
 import { useState, useEffect } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
-import { Check, Trash2, Search, BookOpen } from 'lucide-react'
+import { Check, Trash2, Search, BookOpen, User } from 'lucide-react'
+import { useAuth } from '@/contexts/AuthContext'
 
 export default function VocabNotebookPage() {
+  const { user, authFetch } = useAuth()
   const [items, setItems] = useState([])
   const [searchTerm, setSearchTerm] = useState('')
+  const [isLoading, setIsLoading] = useState(true)
 
   useEffect(() => {
-    fetch('/api/vocab')
+    setIsLoading(true)
+    authFetch('/api/vocab')
       .then(res => res.json())
       .then(data => {
-        if (Array.isArray(data) && data.length > 0) {
+        if (Array.isArray(data)) {
           setItems(data)
         } else {
-          setItems([
-            { id: 1, type: 'grammar', original: 'I go to office yesterday', corrected: 'I went to the office yesterday', explanation: 'Use past tense "went" and definite article "the office".', mastered: false },
-            { id: 2, type: 'vocab', original: 'very good', corrected: 'exceptional / outstanding / resilient', explanation: 'Sounds more formal and high-impact in engineering discussions.', mastered: true },
-            { id: 3, type: 'pronunciation', original: 'comfortable', corrected: 'KUMF-ter-buhl (3 syllables)', explanation: 'Stress the 1st syllable, omit the middle "or" sound.', mastered: false },
-          ])
+          setItems([])
         }
       })
-      .catch(() => {})
-  }, [])
+      .catch(() => setItems([]))
+      .finally(() => setIsLoading(false))
+  }, [user?.id, authFetch])
 
   const toggleMastered = async (id) => {
     setItems(items.map(item => item.id === id ? { ...item, mastered: !item.mastered } : item))
     try {
-      await fetch(`/api/vocab/${id}/toggle`, { method: 'PATCH' })
+      await authFetch(`/api/vocab/${id}/toggle`, { method: 'PATCH' })
     } catch (e) {
       console.warn('Failed to toggle mastered on server:', e)
     }
@@ -35,7 +36,7 @@ export default function VocabNotebookPage() {
   const deleteItem = async (id) => {
     setItems(items.filter(item => item.id !== id))
     try {
-      await fetch(`/api/vocab/${id}`, { method: 'DELETE' })
+      await authFetch(`/api/vocab/${id}`, { method: 'DELETE' })
     } catch (e) {
       console.warn('Failed to delete vocab on server:', e)
     }
@@ -50,14 +51,23 @@ export default function VocabNotebookPage() {
     <div className="max-w-4xl mx-auto space-y-7 pb-12 w-full">
       <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
         <div className="space-y-2">
-          <div className="inline-flex items-center gap-2 px-3.5 py-1 rounded-full bg-[#F4EFEA] border border-[#EAE5DE] text-xs font-semibold text-[#E06D53]">
-            <BookOpen size={13} />
-            <span>Personal Lexicon</span>
+          <div className="flex items-center gap-2 flex-wrap">
+            <div className="inline-flex items-center gap-2 px-3.5 py-1 rounded-full bg-[#F4EFEA] border border-[#EAE5DE] text-xs font-semibold text-[#E06D53]">
+              <BookOpen size={13} />
+              <span>Personal Lexicon</span>
+            </div>
+            {user && (
+              <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-[#B0CDE6]/25 border border-[#B0CDE6]/40 text-xs font-semibold text-[#1C1A17]">
+                <User size={12} className="text-[#1C1A17]" />
+                <span>Learner: {user.name}</span>
+              </div>
+            )}
           </div>
           <h1 className="text-3xl sm:text-4xl font-extrabold text-[#1C1A17] tracking-tight">
             Vocabulary & Grammar Vault
           </h1>
           <p className="text-xs sm:text-sm text-[#6B645C]">
+
             Saved corrections, phonetic guidance, and upgraded idioms from your voice conversations.
           </p>
         </div>

@@ -1,10 +1,9 @@
 import { motion } from 'framer-motion'
-import { Mic, MicOff, Square, Play, Sparkles, Volume2 } from 'lucide-react'
+import { Mic, MicOff, Square, Play, Sparkles, CornerDownLeft, RotateCcw, Headphones, Volume2 } from 'lucide-react'
 import { cn } from '@/lib/utils'
 
 /**
- * FloatingVoiceDock — Speak.com-style sleek floating acoustic controller
- * Replaces the heavy 3D canvas orb with a clean, tactile bottom bar.
+ * FloatingVoiceDock — Tactile floating acoustic controller
  */
 export default function FloatingVoiceDock({
   isSessionActive,
@@ -15,11 +14,17 @@ export default function FloatingVoiceDock({
   sessionDuration = '00:00',
   isCalibrating,
   calibrated,
+  isListening = true,
+  draftText = '',
+  headphonesMode = false,
   onStart,
   onEnd,
   onToggleMute,
+  onToggleHeadphones,
   onCalibrate,
   onInterrupt,
+  onRestartListening,
+  onSendDraft,
 }) {
   const isSpeaking = isAiSpeaking || (isSessionActive && !isMuted && micVolume > 10)
 
@@ -28,7 +33,7 @@ export default function FloatingVoiceDock({
       initial={{ y: 30, opacity: 0 }}
       animate={{ y: 0, opacity: 1 }}
       transition={{ type: 'spring', stiffness: 400, damping: 30 }}
-      className="fixed bottom-6 left-1/2 -translate-x-1/2 z-40 flex items-center gap-3 sm:gap-4 px-4 py-2.5 rounded-full bg-white/95 border border-[#EAE5DE] shadow-[0_12px_40px_rgba(28,26,23,0.12)] backdrop-blur-xl"
+      className="fixed bottom-6 left-1/2 -translate-x-1/2 z-40 flex items-center gap-2.5 sm:gap-4 px-4 py-2.5 rounded-full bg-white/95 border border-[#EAE5DE] shadow-[0_12px_40px_rgba(28,26,23,0.12)] backdrop-blur-xl"
     >
       {!isSessionActive ? (
         <>
@@ -83,24 +88,54 @@ export default function FloatingVoiceDock({
               <span>Interrupt <span className="opacity-80 text-[10px] font-mono hidden sm:inline">(Space)</span></span>
             </motion.button>
           ) : (
-            <motion.button
-              whileHover={{ scale: 1.05 }}
-              whileTap={{ scale: 0.95 }}
-              onClick={onToggleMute}
-              className={cn(
-                'flex items-center justify-center w-10 h-10 rounded-full transition-all duration-150 cursor-pointer border',
-                isMuted
-                  ? 'bg-rose-50 border-rose-200 text-rose-600'
-                  : 'bg-[#F4EFEA] border-[#EAE5DE] text-[#1C1A17] hover:bg-[#EDE7DE]'
+            <div className="flex items-center gap-1.5">
+              <motion.button
+                whileHover={{ scale: 1.05 }}
+                whileTap={{ scale: 0.95 }}
+                onClick={onToggleMute}
+                className={cn(
+                  'flex items-center justify-center w-9 h-9 sm:w-10 sm:h-10 rounded-full transition-all duration-150 cursor-pointer border',
+                  isMuted
+                    ? 'bg-rose-50 border-rose-200 text-rose-600'
+                    : 'bg-[#F4EFEA] border-[#EAE5DE] text-[#1C1A17] hover:bg-[#EDE7DE]'
+                )}
+                title={isMuted ? 'Unmute microphone' : 'Mute microphone'}
+              >
+                {isMuted ? <MicOff size={16} /> : <Mic size={16} className="text-[#E06D53]" />}
+              </motion.button>
+
+              {/* Force Mic Reset if browser dropped recognition */}
+              {!isListening && !isMuted && onRestartListening && (
+                <button
+                  onClick={onRestartListening}
+                  className="flex items-center justify-center w-7 h-7 rounded-full bg-amber-50 border border-amber-200 text-amber-600 hover:bg-amber-100 transition-colors cursor-pointer"
+                  title="Click to reconnect microphone"
+                >
+                  <RotateCcw size={12} />
+                </button>
               )}
-              title={isMuted ? 'Unmute microphone' : 'Mute microphone'}
-            >
-              {isMuted ? <MicOff size={16} /> : <Mic size={16} className="text-[#E06D53]" />}
-            </motion.button>
+
+              {/* Headphones Mode vs Speaker Mode Toggle */}
+              {onToggleHeadphones && (
+                <button
+                  onClick={onToggleHeadphones}
+                  className={cn(
+                    'flex items-center gap-1 px-2.5 py-1 rounded-full text-[11px] font-medium transition-all duration-150 cursor-pointer border',
+                    headphonesMode
+                      ? 'bg-indigo-50 border-indigo-200 text-indigo-700'
+                      : 'bg-[#F4EFEA] border-[#EAE5DE] text-[#6B645C] hover:text-[#1C1A17]'
+                  )}
+                  title={headphonesMode ? 'Headphones Mode (Full Duplex Barge-In)' : 'Speaker Mode (Echo-Safe Turn Taking)'}
+                >
+                  {headphonesMode ? <Headphones size={12} /> : <Volume2 size={12} />}
+                  <span className="hidden md:inline">{headphonesMode ? 'Headphones' : 'Speakers'}</span>
+                </button>
+              )}
+            </div>
           )}
 
           {/* Acoustic Terracotta Wave Equalizer (Reacts to voice volume) */}
-          <div className="flex items-center gap-1 h-5 px-2">
+          <div className="flex items-center gap-1 h-5 px-1.5 sm:px-2">
             <div
               className={cn(
                 'w-[3px] rounded-full transition-all duration-150',
@@ -133,8 +168,24 @@ export default function FloatingVoiceDock({
             />
           </div>
 
+          {/* Live Draft Send Pill (if user has spoken words waiting to be sent) */}
+          {draftText && onSendDraft && (
+            <motion.button
+              initial={{ scale: 0.9, opacity: 0 }}
+              animate={{ scale: 1, opacity: 1 }}
+              whileHover={{ scale: 1.05 }}
+              whileTap={{ scale: 0.95 }}
+              onClick={onSendDraft}
+              className="flex items-center gap-1 px-2.5 py-1 rounded-full bg-[#E06D53] hover:bg-[#D95D39] text-white text-[11px] font-bold shadow-xs cursor-pointer transition-all"
+              title="Click to send what you just said right now"
+            >
+              <span>Send</span>
+              <CornerDownLeft size={11} />
+            </motion.button>
+          )}
+
           {/* Conversational Telemetry Status */}
-          <div className="flex items-center gap-2 px-2">
+          <div className="flex items-center gap-2 px-1.5 sm:px-2">
             <span
               className={cn(
                 'h-2 w-2 rounded-full',
@@ -142,11 +193,19 @@ export default function FloatingVoiceDock({
                   ? 'bg-indigo-500 animate-pulse'
                   : isMuted
                   ? 'bg-rose-500'
-                  : 'bg-[#E06D53] animate-pulse'
+                  : isListening
+                  ? 'bg-[#E06D53] animate-pulse'
+                  : 'bg-amber-400'
               )}
             />
             <span className="text-xs font-semibold text-[#1C1A17] hidden sm:inline">
-              {isAiSpeaking ? 'AI Speaking...' : isMuted ? 'Muted' : 'Listening...'}
+              {isAiSpeaking
+                ? 'AI Speaking...'
+                : isMuted
+                ? 'Muted'
+                : isListening
+                ? 'Listening...'
+                : 'Mic Standby'}
             </span>
             <span className="text-xs font-mono font-medium text-[#6B645C] border-l border-[#EAE5DE] pl-2">
               {sessionDuration}
